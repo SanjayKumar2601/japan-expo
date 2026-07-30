@@ -1,0 +1,1 @@
+import{d as e,l as t,u as n}from"./googleSheets-DGmL8rRo.js";function r(){return{items:e(e=>e.items),isOpen:e(e=>e.isOpen),total:e(n),count:e(t),addItem:e(e=>e.addItem),removeItem:e(e=>e.removeItem),incrementItem:e(e=>e.incrementItem),decrementItem:e(e=>e.decrementItem),clearCart:e(e=>e.clearCart),openCart:e(e=>e.openCart),closeCart:e(e=>e.closeCart)}}export{r as t};

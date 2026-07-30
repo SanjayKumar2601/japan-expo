@@ -1,0 +1,1 @@
+import{t as e}from"./react-BqikH5YV.js";var t=e(e=>({isOnline:navigator.onLine,syncState:navigator.onLine?`online`:`offline`,pendingCount:0,setOnline:t=>e({isOnline:t,syncState:t?`online`:`offline`}),setSyncState:t=>e({syncState:t}),setPendingCount:t=>e({pendingCount:t})}));export{t};

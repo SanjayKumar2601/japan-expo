@@ -1,0 +1,1 @@
+import{t as e}from"./react-BqikH5YV.js";var t=e(e=>({toasts:[],show:(t,n=`info`)=>{let r=Math.random().toString(36).slice(2);e(e=>({toasts:[...e.toasts,{id:r,message:t,tone:n}]})),setTimeout(()=>{e(e=>({toasts:e.toasts.filter(e=>e.id!==r)}))},3200)},dismiss:t=>e(e=>({toasts:e.toasts.filter(e=>e.id!==t)}))}));export{t};
