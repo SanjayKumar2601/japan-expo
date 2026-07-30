@@ -22,6 +22,7 @@ export function TopBar({ title, subtitle }: { title: string; subtitle?: string }
           <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
         </button>
         <button
+          data-cart-fly-target
           onClick={toggleCart}
           className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text)] transition-transform hover:scale-105 active:scale-95"
         >

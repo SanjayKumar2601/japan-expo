@@ -4,6 +4,7 @@ import { BottomNav } from './BottomNav';
 import { FloatingActionButton } from './FloatingActionButton';
 import { CartDrawer } from '@/features/cart/components/CartDrawer';
 import { Toaster } from '@/components/shared/Toaster';
+import { FlyingCartLayer } from '@/components/shared/FlyingCartLayer';
 import { useNetworkSync } from '@/hooks/useNetworkSync';
 
 export function AppShell() {
@@ -18,6 +19,7 @@ export function AppShell() {
       <BottomNav />
       <FloatingActionButton />
       <CartDrawer />
+      <FlyingCartLayer />
       <Toaster />
     </div>
   );

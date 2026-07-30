@@ -33,6 +33,7 @@ export interface OrderItem {
   productId: string;
   productName: string;
   price: number;
+  salePrice?: number;
   quantity: number;
   imageUrl: string;
 }

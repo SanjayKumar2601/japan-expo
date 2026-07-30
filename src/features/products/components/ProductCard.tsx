@@ -17,9 +17,17 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
 
   function handleAdd(e: React.MouseEvent) {
     e.stopPropagation();
+    const source = e.currentTarget.getBoundingClientRect();
+    const event = new CustomEvent('cart:fly', {
+      detail: {
+        sourceRect: source,
+        imageUrl: product.imageUrl,
+      },
+    });
+    window.dispatchEvent(event);
     addItem(product);
     setJustAdded(true);
-    showToast(`${product.name} added to cart`, 'success');
+    showToast(`${product.name} (${product.id}) added to cart`, 'success');
     setTimeout(() => setJustAdded(false), 900);
   }
 
@@ -65,7 +73,8 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         </div>
         <div className="p-3">
           <p className="truncate text-sm font-bold text-[var(--color-text)]">{product.name}</p>
-          <p className="mb-2 text-xs text-[var(--color-muted)]">Stock {product.stock}</p>
+          <p className="text-xs text-[var(--color-muted)]">Stock {product.stock}</p>
+          <p className="mb-2 text-[11px] font-medium text-[var(--color-muted)]">Item ID: {product.id}</p>
           <div className="flex items-center justify-between">
             <span className="text-sm font-extrabold text-[var(--color-primary)]">{formatYen(product.price)}</span>
             <motion.button
