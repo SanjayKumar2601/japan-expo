@@ -6,10 +6,8 @@ export function FloatingActionButton() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-  const normalizedPath = location.pathname.replace(basePath, '') || '/';
   const hiddenOn = ['/checkout', '/order-success', '/splash', '/onboarding'];
-  if (hiddenOn.some((p) => normalizedPath.startsWith(p))) return null;
+  if (hiddenOn.some((p) => location.pathname.startsWith(p))) return null;
 
   return (
     <motion.button
