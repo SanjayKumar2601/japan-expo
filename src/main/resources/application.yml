@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:./data/expo-sales.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-test-query: SELECT 1
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  address: 0.0.0.0
+  port: 8080
+  error:
+    include-message: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  # Local expo network: allow phones/tablets to call the laptop backend.
+  cors-origins: "*"
+  # Admin password for product management endpoints. Change before the expo if desired.
+  admin-password: root
+  # Products at or below this stock level generate a shared low-stock notification.
+  low-stock-threshold: 3
