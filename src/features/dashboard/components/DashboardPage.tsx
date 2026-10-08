@@ -10,16 +10,25 @@ import { RecentOrdersCard } from './RecentOrdersCard';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { Card } from '@/components/ui/Card';
 import { formatYen } from '@/utils/format';
+import { getDeviceUser } from '@/services/receipt';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const navigate = useNavigate();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const [deviceUser, setDeviceUserState] = useState(() => getDeviceUser() ?? 'there');
+
+  useEffect(() => {
+    const refresh = () => setDeviceUserState(getDeviceUser() ?? 'there');
+    window.addEventListener('expo:device-user-changed', refresh);
+    return () => window.removeEventListener('expo:device-user-changed', refresh);
+  }, []);
 
   return (
     <PageTransition>
-      <TopBar title={`${greeting}, Rahul 👋`} subtitle="Here's how your expo booth is doing today" />
+      <TopBar title={`${greeting}, ${deviceUser} 👋`} subtitle="Here's how your expo booth is doing today" />
 
       {isLoading || !data ? (
         <DashboardSkeleton />

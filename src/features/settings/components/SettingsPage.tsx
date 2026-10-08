@@ -8,14 +8,16 @@ import { Button } from '@/components/ui/Button';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useNetworkStore } from '@/store/networkStore';
 import { useToastStore } from '@/store/toastStore';
-import { syncPendingOrders } from '@/services/googleSheets';
+import { syncPendingOrders } from '@/services/backendApi';
 import { useState } from 'react';
+import { getDeviceUser, setDeviceUser } from '@/services/receipt';
 
 export default function SettingsPage() {
   const { theme, setTheme, soundEnabled, toggleSound } = useSettingsStore();
   const pendingCount = useNetworkStore((s) => s.pendingCount);
   const showToast = useToastStore((s) => s.show);
   const [syncing, setSyncing] = useState(false);
+  const [operator, setOperator] = useState(getDeviceUser() ?? '');
 
   async function handleSyncNow() {
     setSyncing(true);
@@ -28,6 +30,17 @@ export default function SettingsPage() {
     <PageTransition>
       <TopBar title="Settings" subtitle="Manage your app preferences" />
       <div className="space-y-5 px-4 pb-28 sm:px-6 md:pb-8">
+        <SettingsSection title="POS Operator">
+          <div className="px-4 py-4">
+            <p className="text-sm font-semibold">Device user / staff name</p>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">Stored only on this device and used in receipt filenames.</p>
+            <div className="mt-3 flex gap-2">
+              <input value={operator} onChange={(event) => setOperator(event.target.value)} placeholder="e.g. Sanjay" className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+              <Button size="sm" onClick={() => { setDeviceUser(operator); window.dispatchEvent(new Event('expo:device-user-changed')); showToast('Device user saved', 'success'); }}>Save</Button>
+            </div>
+          </div>
+        </SettingsSection>
+
         <SettingsSection title="Preferences">
           <SettingsRow icon={<Moon className="h-4.5 w-4.5" />} label="Dark Mode">
             <Toggle checked={theme === 'dark'} onChange={(v) => setTheme(v ? 'dark' : 'light')} />
@@ -37,8 +50,8 @@ export default function SettingsPage() {
           </SettingsRow>
         </SettingsSection>
 
-        <SettingsSection title="Sync Catalogue">
-          <SettingsRow icon={<Sheet className="h-4.5 w-4.5" />} label="Google Sheets Connection" chevron subtitle="Connected" />
+        <SettingsSection title="Sync Sync Catalogue Data">
+          <SettingsRow icon={<Sheet className="h-4.5 w-4.5" />} label="Backend Connection" chevron subtitle="Connected" />
           <SettingsRow icon={<Download className="h-4.5 w-4.5" />} label="Export Data" chevron subtitle="Export orders and reports" />
           <SettingsRow icon={<FileText className="h-4.5 w-4.5" />} label="Print Test" chevron subtitle="Test your receipt printer" />
         </SettingsSection>

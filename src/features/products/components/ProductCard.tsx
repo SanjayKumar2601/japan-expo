@@ -5,13 +5,11 @@ import { Plus, Check, Heart } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { formatYen } from '@/utils/format';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { useToastStore } from '@/store/toastStore';
 import type { Product } from '@/types';
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const navigate = useNavigate();
-  const addItem = useCart().addItem;
-  const showToast = useToastStore((s) => s.show);
+  const requestAdd = useCart().requestAdd;
   const [justAdded, setJustAdded] = useState(false);
   const [favorite, setFavorite] = useState(product.isFavorite ?? false);
 
@@ -25,13 +23,13 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       },
     });
     window.dispatchEvent(event);
-    addItem(product);
+    requestAdd(product, 1);
     setJustAdded(true);
-    showToast(`${product.name} (${product.id}) added to cart`, 'success');
     setTimeout(() => setJustAdded(false), 900);
   }
 
-  const lowStock = product.stock <= 5;
+  const outOfStock = product.stock <= 0;
+  const lowStock = product.stock > 0 && product.stock <= 5;
 
   return (
     <motion.div
@@ -43,7 +41,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         hoverLift
         padding="none"
         onClick={() => navigate(`/products/${product.id}`)}
-        className="cursor-pointer overflow-hidden"
+        className={`cursor-pointer overflow-hidden ${outOfStock ? 'opacity-60 grayscale' : ''}`}
       >
         <div className="relative aspect-square w-full overflow-hidden bg-[var(--color-bg)]">
           <img
@@ -65,7 +63,11 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
               stroke={favorite ? '#E5484D' : '#777777'}
             />
           </button>
-          {lowStock && (
+          {outOfStock ? (
+            <span className="absolute left-2.5 top-2.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+              Out of stock
+            </span>
+          ) : lowStock && (
             <span className="absolute left-2.5 top-2.5 rounded-full bg-[var(--color-warning)] px-2 py-0.5 text-[10px] font-bold text-white">
               Low stock
             </span>
@@ -73,15 +75,17 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         </div>
         <div className="p-3">
           <p className="truncate text-sm font-bold text-[var(--color-text)]">{product.name}</p>
-          <p className="text-xs text-[var(--color-muted)]">Stock {product.stock}</p>
+          <p className={`text-xs ${outOfStock ? 'font-semibold text-[var(--color-muted)]' : 'text-[var(--color-muted)]'}`}>
+            {outOfStock ? 'Out of stock' : `Stock ${product.stock}`}
+          </p>
           <p className="mb-2 text-[11px] font-medium text-[var(--color-muted)]">Item ID: {product.id}</p>
           <div className="flex items-center justify-between">
             <span className="text-sm font-extrabold text-[var(--color-primary)]">{formatYen(product.price)}</span>
             <motion.button
               onClick={handleAdd}
               whileTap={{ scale: 0.85 }}
-              disabled={product.stock === 0}
-              className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary text-white shadow-[var(--shadow-card)] disabled:opacity-40"
+              disabled={outOfStock}
+              className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary text-white shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:opacity-100"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {justAdded ? (

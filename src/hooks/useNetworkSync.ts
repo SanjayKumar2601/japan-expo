@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNetworkStore } from '@/store/networkStore';
 import { useToastStore } from '@/store/toastStore';
-import { syncPendingOrders } from '@/services/googleSheets';
+import { syncPendingOrders } from '@/services/backendApi';
 import { offlineDb } from '@/services/db';
 
 export function useNetworkSync() {
@@ -25,7 +25,7 @@ export function useNetworkSync() {
       setSyncState('online');
       await refreshPendingCount();
       if (syncedCount > 0) {
-        showToast(`Synced ${syncedCount} order${syncedCount > 1 ? 's' : ''} to Google Sheets`, 'success');
+        showToast(`Synced ${syncedCount} order${syncedCount > 1 ? 's' : ''} to Backend`, 'success');
         queryClient.invalidateQueries({ queryKey: ['orders'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }

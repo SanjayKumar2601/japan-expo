@@ -17,6 +17,7 @@ export interface Product {
   categoryId: string;
   categoryName: string;
   price: number;
+  costPrice?: number;
   stock: number;
   imageUrl: string;
   description?: string;
@@ -46,6 +47,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   customerName?: string;
   notes?: string;
+  operatorName?: string;
   status: OrderStatus;
   createdAt: string;
   synced: boolean;
@@ -86,3 +88,12 @@ export interface AppSettings {
 }
 
 export type SyncState = 'online' | 'offline' | 'syncing';
+
+export interface PosNotification {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+  tone: 'success' | 'warning' | 'info';
+}

@@ -3,12 +3,15 @@ import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { FloatingActionButton } from './FloatingActionButton';
 import { CartDrawer } from '@/features/cart/components/CartDrawer';
+import { CartChooserModal } from '@/features/cart/components/CartChooserModal';
 import { Toaster } from '@/components/shared/Toaster';
 import { FlyingCartLayer } from '@/components/shared/FlyingCartLayer';
 import { useNetworkSync } from '@/hooks/useNetworkSync';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 export function AppShell() {
   useNetworkSync();
+  useRealtimeNotifications();
 
   return (
     <div className="flex min-h-screen bg-[var(--color-bg)]">
@@ -19,6 +22,7 @@ export function AppShell() {
       <BottomNav />
       <FloatingActionButton />
       <CartDrawer />
+      <CartChooserModal />
       <FlyingCartLayer />
       <Toaster />
     </div>

@@ -1,22 +1,30 @@
 import axios from 'axios';
 
-/**
- * Base client for the Google Apps Script Web App.
- * Set VITE_APPS_SCRIPT_URL in .env once the script is deployed, then flip
- * USE_LIVE_BACKEND to true in googleSheets.ts.
- */
+const backendBaseUrl =
+  import.meta.env.VITE_BACKEND_URL ??
+  `${window.location.protocol}//${window.location.hostname}:8080/api`;
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_APPS_SCRIPT_URL ?? '',
+  baseURL: backendBaseUrl,
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Centralized error normalization so features never see axios internals.
-    const message =
-      error?.response?.data?.message ?? error?.message ?? 'Network request failed';
-    return Promise.reject(new Error(message));
-  },
-);
+export function getAdminPassword(): string | null {
+  return sessionStorage.getItem('expo-admin-password');
+}
+
+export function setAdminPassword(password: string): void {
+  sessionStorage.setItem('expo-admin-password', password);
+}
+
+export function clearAdminPassword(): void {
+  sessionStorage.removeItem('expo-admin-password');
+}
+
+export function adminHeaders() {
+  const password = getAdminPassword();
+  return password ? { 'X-Admin-Password': password } : {};
+}

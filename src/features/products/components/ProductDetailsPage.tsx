@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatYen } from '@/utils/format';
 import { useCartStore } from '@/store/cartStore';
-import { useToastStore } from '@/store/toastStore';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -16,11 +15,10 @@ export default function ProductDetailsPage() {
   const { data: products, isLoading } = useProducts();
   const [qty, setQty] = useState(1);
   const [favorite, setFavorite] = useState(false);
-  const addItem = useCartStore((s) => s.addItem);
-  const openCart = useCartStore((s) => s.openCart);
-  const showToast = useToastStore((s) => s.show);
+  const requestAdd = useCartStore((s) => s.requestAdd);
 
   const product = products?.find((p) => p.id === id);
+  const outOfStock = product ? product.stock <= 0 : false;
 
   if (isLoading) {
     return (
@@ -45,9 +43,7 @@ export default function ProductDetailsPage() {
 
   function handleAddToCart() {
     if (!product) return;
-    for (let i = 0; i < qty; i++) addItem(product);
-    showToast(`${qty} × ${product.name} added to cart`, 'success');
-    openCart();
+    requestAdd(product, qty);
   }
 
   return (
@@ -91,8 +87,8 @@ export default function ProductDetailsPage() {
         </p>
 
         <div className="mt-4 flex items-center gap-2 text-sm">
-          <span className={`h-2 w-2 rounded-full ${product.stock > 5 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
-          <span className="text-[var(--color-muted)]">{product.stock} in stock</span>
+          <span className={`h-2 w-2 rounded-full ${outOfStock ? 'bg-gray-400' : product.stock > 5 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
+          <span className="text-[var(--color-muted)]">{outOfStock ? 'Out of stock' : `${product.stock} in stock`}</span>
         </div>
 
         <div className="mt-6 flex items-center gap-4">
@@ -113,7 +109,7 @@ export default function ProductDetailsPage() {
       </motion.div>
 
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-5 py-4 backdrop-blur-md sm:sticky sm:bottom-0 sm:mt-6 md:bottom-0">
-        <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+        <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={outOfStock}>
           Add to Cart · {formatYen(product.price * qty)}
         </Button>
       </div>

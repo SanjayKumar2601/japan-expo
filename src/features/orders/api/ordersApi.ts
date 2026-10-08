@@ -1,3 +1,3 @@
-import { getOrders } from '@/services/googleSheets';
+import { getOrders } from '@/services/backendApi';
 
 export const ordersApi = { getOrders };

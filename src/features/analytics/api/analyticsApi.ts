@@ -1,3 +1,3 @@
-import { getAnalytics } from '@/services/googleSheets';
+import { getAnalytics } from '@/services/backendApi';
 
 export const analyticsApi = { getAnalytics };

@@ -20,6 +20,7 @@ export function useCreateOrder() {
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       if (!order.synced) {
         setPendingCount(1);
       }

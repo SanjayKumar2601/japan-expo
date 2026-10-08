@@ -37,4 +37,6 @@ export const router = createBrowserRouter([
       { path: '*', element: withSuspense(<NotFound />) },
     ],
   },
-]);
+], {
+  basename: '/japan-expo',
+});

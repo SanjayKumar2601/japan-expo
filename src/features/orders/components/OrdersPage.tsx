@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Receipt, Search } from 'lucide-react';
+import { ChevronDown, Receipt, Search, Download, Printer } from 'lucide-react';
 import { TopBar } from '@/components/layouts/TopBar';
 import { PageTransition } from '@/components/shared/PageTransition';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -10,6 +10,8 @@ import { useOrders } from '../hooks/useOrders';
 import { formatDate, formatTime, formatYen } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import type { PaymentMethod } from '@/types';
+import { downloadReceipt, getOrAskDeviceUser, printReceipt } from '@/services/receipt';
+import { useToastStore } from '@/store/toastStore';
 
 const filters: { id: PaymentMethod | 'all'; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -23,6 +25,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<PaymentMethod | 'all'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const showToast = useToastStore((s) => s.show);
 
   const filtered = useMemo(() => {
     if (!orders) return [];
@@ -139,6 +142,32 @@ export default function OrdersPage() {
                         <div className="flex justify-between border-t border-[var(--color-border)] py-3 text-sm font-bold">
                           <span>Total Amount</span>
                           <span>{formatYen(order.total)}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pb-4">
+                          <button
+                            onClick={async (event) => {
+                              event.stopPropagation();
+                              const user = getOrAskDeviceUser();
+                              if (!user) return;
+                              try { await downloadReceipt(order, user); showToast('Receipt downloaded', 'success'); }
+                              catch { showToast('Could not create receipt', 'error'); }
+                            }}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-xs font-bold"
+                          >
+                            <Download className="h-4 w-4" /> PNG
+                          </button>
+                          <button
+                            onClick={async (event) => {
+                              event.stopPropagation();
+                              const user = getOrAskDeviceUser();
+                              if (!user) return;
+                              try { await printReceipt(order, user); }
+                              catch { showToast('Could not open printable receipt', 'error'); }
+                            }}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-xs font-bold"
+                          >
+                            <Printer className="h-4 w-4" /> Print / PDF
+                          </button>
                         </div>
                       </motion.div>
                     )}

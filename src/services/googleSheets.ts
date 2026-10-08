@@ -1,23 +1,15 @@
+
 /**
  * services/googleSheets.ts
- * -------------------------------------------------------------------------
- * Single source of truth for backend access. The rest of the app NEVER
- * talks to Google Sheets, Apps Script, or Drive directly — every feature
- * calls the functions exported here.
  *
- * Today these functions run against local mock data + IndexedDB so the app
- * is fully usable offline and in development. When the Apps Script Web App
- * is deployed, swap the body of each function for an `apiClient` call
- * (see the commented block below) — no other file in the app needs to
- * change, including when migrating to Firebase later.
+ * Backend access layer for the Expo Sales Tracker.
  *
- *   const res = await apiClient.get<DashboardSummary>('?action=getDashboard');
- *   return res.data;
- * -------------------------------------------------------------------------
+ * React -> this service -> Spring Boot -> SQLite
  */
+
 import { apiClient } from './apiClient';
 import { offlineDb } from './db';
-import { CATEGORIES, PRODUCTS, buildRecentOrders } from './mockData';
+
 import type {
   AnalyticsData,
   AppSettings,
@@ -27,80 +19,83 @@ import type {
   Product,
 } from '@/types';
 
-// Toggle this on once VITE_APPS_SCRIPT_URL is configured and live.
-const USE_LIVE_BACKEND = false;
+const USE_LIVE_BACKEND = true;
 
-function simulateLatency<T>(value: T, ms = 500): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
-}
-
-function generateOrderNumber(): string {
-  const stored = Number(localStorage.getItem('expo:lastOrderNumber') ?? '1052');
-  const next = stored + 1;
-  localStorage.setItem('expo:lastOrderNumber', String(next));
-  return `#${next}`;
-}
-
+/**
+ * -------------------------------------------------------------------------
+ * Categories
+ * -------------------------------------------------------------------------
+ */
 export async function getCategories(): Promise<Category[]> {
   if (USE_LIVE_BACKEND) {
-    const res = await apiClient.get<Category[]>('', { params: { action: 'getCategories' } });
-    return res.data;
+    const response = await apiClient.get<Category[]>('/categories');
+    return response.data;
   }
-  return simulateLatency(CATEGORIES, 300);
+
+  return [];
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * Products
+ * -------------------------------------------------------------------------
+ */
 export async function getProducts(): Promise<Product[]> {
   if (USE_LIVE_BACKEND) {
-    const res = await apiClient.get<Product[]>('', { params: { action: 'getProducts' } });
-    return res.data;
+    const response = await apiClient.get<Product[]>('/products');
+    return response.data;
   }
-  return simulateLatency(PRODUCTS, 450);
+
+  return [];
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * Dashboard
+ * -------------------------------------------------------------------------
+ */
 export async function getDashboard(): Promise<DashboardSummary> {
   if (USE_LIVE_BACKEND) {
-    const res = await apiClient.get<DashboardSummary>('', { params: { action: 'getDashboard' } });
-    return res.data;
+    const response =
+      await apiClient.get<DashboardSummary>('/dashboard');
+
+    return response.data;
   }
-  const recentOrders = buildRecentOrders();
-  const pending = await offlineDb.getPendingOrders();
-  return simulateLatency(
-    {
-      revenueToday: 428560,
-      revenueChangePercent: 12.5,
-      ordersToday: 53,
-      ordersChangePercent: 8,
-      avgOrderValue: 803,
-      avgOrderChangePercent: 4.2,
-      paymentSplit: [
-        { method: 'cash', amount: 80000 },
-        { method: 'upi', amount: 229000 },
-        { method: 'card', amount: 55560 },
-      ],
-      recentOrders,
-      pendingSyncCount: pending.length,
-    },
-    500,
-  );
+
+  throw new Error('Backend is not enabled');
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * Orders
+ * -------------------------------------------------------------------------
+ */
 export async function getOrders(): Promise<Order[]> {
   if (USE_LIVE_BACKEND) {
-    const res = await apiClient.get<Order[]>('', { params: { action: 'getOrders' } });
-    return res.data;
+    const response = await apiClient.get<Order[]>('/orders');
+    return response.data;
   }
+
   const cached = await offlineDb.getCachedOrders();
   const pending = await offlineDb.getPendingOrders();
-  const base = buildRecentOrders();
-  const merged = [...pending, ...cached, ...base].filter(
-    (order, index, arr) => arr.findIndex((o) => o.id === order.id) === index,
+
+  const merged = [...pending, ...cached].filter(
+    (order, index, orders) =>
+      orders.findIndex((item) => item.id === order.id) === index,
   );
-  return simulateLatency(
-    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    350,
+
+  return merged.sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
   );
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * Create Order
+ * -------------------------------------------------------------------------
+ */
 export async function createOrder(input: {
   items: Order['items'];
   total: number;
@@ -108,9 +103,42 @@ export async function createOrder(input: {
   customerName?: string;
   notes?: string;
 }): Promise<Order> {
+  /**
+   * Online:
+   * React -> Spring Boot -> SQLite
+   */
+  if (USE_LIVE_BACKEND && navigator.onLine) {
+    const response = await apiClient.post<Order>(
+      '/orders',
+      input,
+    );
+
+    await offlineDb.cacheOrder({
+      ...response.data,
+      synced: true,
+    });
+
+    return response.data;
+  }
+
+  /**
+   * Offline:
+   * Save the order locally and sync it when the backend becomes available.
+   */
+  const stored = Number(
+    localStorage.getItem('expo:lastOrderNumber') ?? '1052',
+  );
+
+  const next = stored + 1;
+
+  localStorage.setItem(
+    'expo:lastOrderNumber',
+    String(next),
+  );
+
   const order: Order = {
-    id: `local-${Date.now()}`,
-    orderNumber: generateOrderNumber(),
+    id: 'local-' + Date.now(),
+    orderNumber: '#' + next,
     items: input.items,
     total: input.total,
     paymentMethod: input.paymentMethod,
@@ -118,102 +146,118 @@ export async function createOrder(input: {
     notes: input.notes,
     status: 'completed',
     createdAt: new Date().toISOString(),
-    synced: navigator.onLine && USE_LIVE_BACKEND,
+    synced: false,
   };
 
-  if (USE_LIVE_BACKEND && navigator.onLine) {
-    const res = await apiClient.post<Order>('', { action: 'createOrder', ...input });
-    await offlineDb.cacheOrder(res.data);
-    return res.data;
-  }
-
-  // Offline-first: always persist locally first, sync later.
   await offlineDb.queueOrder(order);
-  return simulateLatency(order, 700);
+
+  return order;
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * Analytics
+ * -------------------------------------------------------------------------
+ */
 export async function getAnalytics(): Promise<AnalyticsData> {
   if (USE_LIVE_BACKEND) {
-    const res = await apiClient.get<AnalyticsData>('', { params: { action: 'getAnalytics' } });
-    return res.data;
-  }
-  const topProducts = [...PRODUCTS]
-    .sort((a, b) => (b.soldCount ?? 0) - (a.soldCount ?? 0))
-    .slice(0, 5)
-    .map((product) => ({
-      product,
-      unitsSold: product.soldCount ?? 0,
-      revenue: (product.soldCount ?? 0) * product.price,
-    }));
+    const response =
+      await apiClient.get<AnalyticsData>('/analytics');
 
-  return simulateLatency(
-    {
-      revenue: 42560,
-      orders: 53,
-      profit: 18750,
-      avgOrderValue: 803,
-      revenueChangePercent: 12.5,
-      ordersChangePercent: 8,
-      profitChangePercent: 10.2,
-      paymentSplit: [
-        { method: 'upi', percent: 68 },
-        { method: 'cash', percent: 19 },
-        { method: 'card', percent: 13 },
-      ],
-      topProducts,
-      weeklyRevenue: [
-        { day: 'Mon', revenue: 28000 },
-        { day: 'Tue', revenue: 31500 },
-        { day: 'Wed', revenue: 26800 },
-        { day: 'Thu', revenue: 39200 },
-        { day: 'Fri', revenue: 45100 },
-        { day: 'Sat', revenue: 58900 },
-        { day: 'Sun', revenue: 42560 },
-      ],
-    },
-    500,
-  );
+    return response.data;
+  }
+
+  throw new Error('Backend is not enabled');
 }
 
-export async function syncPendingOrders(): Promise<{ syncedCount: number }> {
+/**
+ * -------------------------------------------------------------------------
+ * Sync pending offline orders
+ * -------------------------------------------------------------------------
+ */
+export async function syncPendingOrders(): Promise<{
+  syncedCount: number;
+}> {
   const pending = await offlineDb.getPendingOrders();
-  if (pending.length === 0) return { syncedCount: 0 };
+
+  if (pending.length === 0) {
+    return {
+      syncedCount: 0,
+    };
+  }
 
   if (USE_LIVE_BACKEND && navigator.onLine) {
+    let syncedCount = 0;
+
     for (const order of pending) {
-      await apiClient.post('', { action: 'createOrder', ...order });
-      await offlineDb.removePendingOrder(order.id);
-      await offlineDb.cacheOrder({ ...order, synced: true });
+      try {
+        const response = await apiClient.post<Order>(
+          '/orders',
+          {
+            items: order.items,
+            total: order.total,
+            paymentMethod: order.paymentMethod,
+            customerName: order.customerName,
+            notes: order.notes,
+          },
+        );
+
+        await offlineDb.removePendingOrder(order.id);
+
+        await offlineDb.cacheOrder({
+          ...response.data,
+          synced: true,
+        });
+
+        syncedCount++;
+      } catch (error) {
+        console.error(
+          'Failed to sync order:',
+          order.id,
+          error,
+        );
+
+        break;
+      }
     }
-    return { syncedCount: pending.length };
+
+    return {
+      syncedCount,
+    };
   }
 
-  // Dev fallback: simulate a successful sync once "online" again.
-  await simulateLatency(null, 800);
-  for (const order of pending) {
-    await offlineDb.removePendingOrder(order.id);
-    await offlineDb.cacheOrder({ ...order, synced: true });
-  }
-  return { syncedCount: pending.length };
-}
-
-export async function getSettings(): Promise<AppSettings> {
-  const stored = localStorage.getItem('expo:settings');
-  if (stored) return JSON.parse(stored);
-  const defaults: AppSettings = {
-    theme: 'light',
-    language: 'en',
-    soundEnabled: true,
-    lastSyncedAt: null,
-    sheetsConnected: true,
-    version: '1.0.0',
+  return {
+    syncedCount: 0,
   };
-  return simulateLatency(defaults, 150);
 }
 
-export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
-  const current = await getSettings();
-  const next = { ...current, ...patch };
-  localStorage.setItem('expo:settings', JSON.stringify(next));
-  return simulateLatency(next, 150);
+/**
+ * -------------------------------------------------------------------------
+ * Settings
+ * -------------------------------------------------------------------------
+ */
+export async function getSettings(): Promise<AppSettings> {
+  if (USE_LIVE_BACKEND) {
+    const response =
+      await apiClient.get<AppSettings>('/settings');
+
+    return response.data;
+  }
+
+  throw new Error('Backend is not enabled');
+}
+
+export async function updateSettings(
+  patch: Partial<AppSettings>,
+): Promise<AppSettings> {
+  if (USE_LIVE_BACKEND) {
+    const response = await apiClient.patch<AppSettings>(
+      '/settings',
+      patch,
+    );
+
+    return response.data;
+  }
+
+  throw new Error('Backend is not enabled');
 }
